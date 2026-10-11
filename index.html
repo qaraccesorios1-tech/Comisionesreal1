@@ -1,0 +1,390 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>QAR · Control semanal de comisiones</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@600;700&family=Montserrat:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#1a0a2e; --panel:#24123d; --panel2:#2e1a4b; --line:#43305f;
+  --gold:#D4AF37; --gold-soft:#e9d595; --text:#f3eefa; --muted:#b9a9cf;
+  --good:#7fd3a0; --bad:#f08c8c;
+  box-sizing:border-box;
+  padding-top:env(safe-area-inset-top,0px); padding-bottom:env(safe-area-inset-bottom,0px);
+}
+*,*::before,*::after{box-sizing:inherit}
+html,body{margin:0;background:var(--bg);color:var(--text)}
+body{font-family:Montserrat,"Segoe UI",Arial,sans-serif;font-size:15px;line-height:1.45}
+.wrap{max-width:860px;margin:0 auto;padding:18px 16px 60px}
+h1{font-family:"Playfair Display",Georgia,serif;font-weight:700;font-size:1.9rem;margin:0;color:var(--gold);letter-spacing:.3px}
+h2{font-family:"Playfair Display",Georgia,serif;font-size:1.25rem;margin:0 0 10px;color:var(--gold-soft)}
+.sub{color:var(--muted);margin:2px 0 16px;font-size:.92rem}
+.toolbar{display:flex;flex-wrap:wrap;gap:10px;align-items:end;margin-bottom:16px}
+label{display:block;font-size:.8rem;color:var(--muted);margin-bottom:4px}
+input,select,textarea{width:100%;background:#140822;color:var(--text);border:1px solid var(--line);border-radius:8px;padding:9px 10px;font:inherit;font-size:16px}
+input:focus,select:focus,textarea:focus,button:focus-visible{outline:2px solid var(--gold);outline-offset:1px}
+textarea{resize:vertical;min-height:44px}
+button{font:inherit;font-weight:600;border-radius:8px;padding:10px 14px;cursor:pointer;border:1px solid var(--gold);background:transparent;color:var(--gold)}
+button.solid{background:var(--gold);color:#1a0a2e}
+button.small{padding:6px 10px;font-size:.85rem}
+button.danger{border-color:var(--bad);color:var(--bad)}
+
+/* Meta del local */
+.meta{background:var(--panel);border:1px solid var(--gold);border-radius:14px;padding:16px;margin-bottom:18px}
+.meta-row{display:flex;justify-content:space-between;align-items:baseline;gap:10px;flex-wrap:wrap}
+.meta-total{font-family:"Playfair Display",Georgia,serif;font-size:2.1rem;color:var(--text)}
+.meta-goal{color:var(--muted)}
+.bar{height:14px;background:#140822;border-radius:99px;margin:10px 0 8px;overflow:hidden;border:1px solid var(--line)}
+.bar>div{height:100%;background:linear-gradient(90deg,#a8862a,var(--gold));width:0;transition:width .4s}
+.status{font-weight:600}
+.status.ok{color:var(--good)} .status.no{color:var(--gold-soft)}
+.otras{margin-top:10px;max-width:260px}
+
+/* Vendedoras */
+.card{background:var(--panel);border:1px solid var(--line);border-radius:12px;margin-bottom:14px}
+.card-head{display:flex;justify-content:space-between;align-items:center;gap:10px;padding:14px 16px;cursor:pointer}
+.card-head .name{font-weight:700;font-size:1.05rem}
+.card-head .tipo{color:var(--muted);font-size:.82rem}
+.card-head .pay{text-align:right}
+.card-head .pay b{display:block;color:var(--gold);font-size:1.15rem}
+.card-head .pay span{font-size:.78rem;color:var(--muted)}
+.card-body{padding:0 16px 16px;border-top:1px solid var(--line);display:none}
+.card.open .card-body{display:block}
+.grid{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-top:12px}
+.grid.two{grid-template-columns:repeat(2,1fr)}
+.check{display:flex;gap:8px;align-items:center;margin-top:12px;font-size:.92rem}
+.check input{width:22px;height:22px;accent-color:var(--gold)}
+.calc{margin-top:14px;background:var(--panel2);border-radius:10px;padding:12px 14px;font-size:.92rem}
+.calc div{display:flex;justify-content:space-between;gap:10px;padding:3px 0}
+.calc .total{border-top:1px solid var(--line);margin-top:6px;padding-top:8px;font-weight:700;color:var(--gold)}
+.tag{font-size:.78rem;padding:2px 8px;border-radius:99px;font-weight:600}
+.tag.prem{background:rgba(127,211,160,.15);color:var(--good)}
+.tag.desc{background:rgba(240,140,140,.15);color:var(--bad)}
+.hint{color:var(--muted);font-size:.8rem;margin-top:4px}
+
+/* Resumen */
+.table-wrap{overflow-x:auto;border:1px solid var(--line);border-radius:12px}
+table{border-collapse:collapse;width:100%;min-width:720px;font-size:.9rem}
+th,td{padding:9px 10px;text-align:right;border-bottom:1px solid var(--line)}
+th{background:var(--panel2);color:var(--gold-soft);font-weight:600}
+th:first-child,td:first-child{text-align:left}
+tfoot td{font-weight:700;color:var(--gold);border-bottom:0}
+.actions{display:flex;flex-wrap:wrap;gap:10px;margin-top:12px}
+section{margin-top:26px}
+
+/* Ajustes */
+details{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:12px 16px;margin-top:26px}
+summary{cursor:pointer;font-weight:600;color:var(--gold-soft)}
+.v-row{display:grid;grid-template-columns:1fr 170px auto;gap:8px;margin-top:10px;align-items:center}
+.toast{position:fixed;left:50%;bottom:calc(20px + env(safe-area-inset-bottom,0px));transform:translateX(-50%);background:var(--gold);color:#1a0a2e;font-weight:700;padding:10px 16px;border-radius:99px;opacity:0;transition:opacity .25s;pointer-events:none}
+.toast.show{opacity:1}
+
+@media (max-width:560px){
+  .grid{grid-template-columns:repeat(2,1fr)}
+  .v-row{grid-template-columns:1fr 1fr}
+  .v-row button{grid-column:span 2}
+  h1{font-size:1.55rem}
+}
+@media (prefers-reduced-motion:reduce){*{transition:none!important}}
+@media print{
+  :root{--bg:#fff;--panel:#fff;--panel2:#f4eef9;--text:#222;--muted:#555;--line:#ccc;--gold:#7a5c00;--gold-soft:#3b1650}
+  .toolbar,.card,details,.actions,.otras{display:none!important}
+}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>QAR Accesorios</h1>
+  <p class="sub">Control semanal de comisiones · lo llena la encargada cada domingo</p>
+
+  <div class="toolbar">
+    <div style="flex:1;min-width:180px">
+      <label for="semana">Semana (jueves de inicio)</label>
+      <input type="date" id="semana">
+    </div>
+    <button class="small" id="prevW">Semana anterior</button>
+    <button class="small" id="nextW">Semana siguiente</button>
+  </div>
+
+  <div class="meta">
+    <div class="meta-row">
+      <div><label>Venta del local esta semana (efectivo + digital completo)</label><div class="meta-total" id="totalLocal">$0</div></div>
+      <div class="meta-goal" id="metaTxt">Meta: $60,000</div>
+    </div>
+    <div class="bar"><div id="barFill"></div></div>
+    <div class="status" id="statusTxt"></div>
+    <div class="otras">
+      <label for="otras">Otras ventas del local (encargada u otras)</label>
+      <input type="number" inputmode="decimal" min="0" id="otras" placeholder="0">
+    </div>
+  </div>
+
+  <div id="cards"></div>
+
+  <section>
+    <h2>Resumen de pago</h2>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>Vendedora</th><th>Efectivo</th><th>Digital (−5%)</th><th>Vendió</th><th>%</th><th>Comisión</th><th>Ajuste</th><th>Sueldo base</th><th>Pago total</th></tr></thead>
+        <tbody id="resBody"></tbody>
+        <tfoot><tr><td>Total nómina</td><td id="resEf"></td><td id="resDig"></td><td id="resVentas"></td><td></td><td id="resCom"></td><td></td><td id="resBase"></td><td id="resTotal"></td></tr></tfoot>
+      </table>
+    </div>
+    <div class="actions">
+      <button class="solid" id="copyBtn">Copiar resumen para WhatsApp</button>
+      <button id="printBtn">Imprimir</button>
+      <button id="exportBtn">Descargar respaldo</button>
+      <button id="importBtn">Cargar respaldo</button>
+      <input type="file" id="importFile" accept="application/json" hidden>
+    </div>
+  </section>
+
+  <details id="ajustes">
+    <summary>Ajustes: meta y vendedoras</summary>
+    <div style="margin-top:12px;max-width:260px">
+      <label for="metaInput">Meta grupal semanal</label>
+      <input type="number" inputmode="decimal" id="metaInput">
+    </div>
+    <div id="vList"></div>
+    <div class="actions"><button class="small" id="addV">Agregar vendedora</button></div>
+    <p class="hint">Semana completa: base $1,500 · Semana parcial: base $1,250 · Fin de semana: base $900. Los datos se guardan en este teléfono o computadora; descarga un respaldo de vez en cuando.</p>
+  </details>
+</div>
+<div class="toast" id="toast"></div>
+
+<script>
+const TIPOS = {
+  completa:{label:"Semana completa", base:1500, f:[12000,15000,20000,25000], dias:["jue","vie","sab","dom"]},
+  parcial: {label:"Semana parcial",  base:1250, f:[10000,12500,17000,21000], dias:["jue","vie","sab","dom"]},
+  finde:   {label:"Fin de semana",   base:900,  f:[8000,10000,13000,16000],  dias:["sab","dom"]}
+};
+const KEY = "qar_control_comisiones_v1";
+const $ = id => document.getElementById(id);
+const money = n => "$" + Math.round(n).toLocaleString("es-MX");
+
+let state;
+function load(){
+  try{ state = JSON.parse(localStorage.getItem(KEY)); }catch(e){ state = null; }
+  if(!state || !state.config){
+    state = { config:{ meta:60000, vendedoras:[
+      {id:"v1",nombre:"Vendedora 1",tipo:"completa"},
+      {id:"v2",nombre:"Vendedora 2",tipo:"parcial"},
+      {id:"v3",nombre:"Vendedora 3",tipo:"finde"} ]}, semanas:{} };
+  }
+}
+function save(){ try{ localStorage.setItem(KEY, JSON.stringify(state)); }catch(e){} }
+
+function lastThursday(d=new Date()){
+  const x = new Date(d.getFullYear(), d.getMonth(), d.getDate());
+  const diff = (x.getDay() - 4 + 7) % 7;
+  x.setDate(x.getDate() - diff);
+  return x;
+}
+const iso = d => d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0")+"-"+String(d.getDate()).padStart(2,"0");
+let semana = iso(lastThursday());
+
+function week(){
+  if(!state.semanas[semana]) state.semanas[semana] = {otras:0, reg:{}};
+  return state.semanas[semana];
+}
+function reg(id){
+  const w = week();
+  if(!w.reg[id]) w.reg[id] = {efectivo:"",digital:"",retardos:0,presentacion:0,promedio:"",encNA:false,reglamento:true};
+  return w.reg[id];
+}
+const num = v => { const n = parseFloat(String(v).replace(/[^0-9.]/g,"")); return isNaN(n)?0:n; };
+
+const COMISION_DIGITAL = 0.05; // lo que cobran por pagos digitales
+const digitalNeto = r => num(r.digital) * (1 - COMISION_DIGITAL);
+function ventaDe(v){ const r = reg(v.id); return num(r.efectivo) + digitalNeto(r); }
+function ventaBruta(v){ const r = reg(v.id); return num(r.efectivo) + num(r.digital); }
+
+function tasa(venta, tipo, cumple){
+  const f = TIPOS[tipo].f;
+  if(venta < f[0]) return 0;
+  if(venta < f[1]) return 1;
+  if(venta < f[2]) return cumple ? 5 : 4;
+  if(venta < f[3]) return cumple ? 7.5 : 5;
+  return cumple ? 10 : 5;
+}
+function encuesta(v){
+  const s = String(v??"").trim(); const prom = parseFloat(s);
+  return {prom: isNaN(prom)?0:prom, valida: s!=="" && !isNaN(prom) && prom>=1 && prom<=10};
+}
+function calcular(v, cumple){
+  const r = reg(v.id), t = TIPOS[v.tipo];
+  const venta = ventaDe(v), pct = tasa(venta, v.tipo, cumple), com = venta*pct/100;
+  const enc = encuesta(r.promedio);
+  const ret = Math.max(0,parseInt(r.retardos)||0), pres = Math.max(0,parseInt(r.presentacion)||0);
+  let dEnc = 0;
+  const na = !!r.encNA;
+  if(!na && enc.valida){ if(enc.prom < 8.5) dEnc = enc.prom > 6 ? 25 : 50; }
+  const desc = Math.min(100, ret*10 + pres*10 + dEnc);
+  const premio = ret===0 && pres===0 && !na && enc.valida && enc.prom>=8.5 && r.reglamento;
+  const final = premio ? com*1.10 : com*(1-desc/100);
+  return {venta,pct,com,enc,na,ret,pres,dEnc,desc,premio,final,base:t.base,total:t.base+final};
+}
+
+function render(){
+  $("semana").value = semana;
+  const w = week(), cfg = state.config;
+  $("otras").value = w.otras || "";
+  $("metaInput").value = cfg.meta;
+  const totalLocal = cfg.vendedoras.reduce((s,v)=>s+ventaBruta(v),0) + num(w.otras);
+  const cumple = totalLocal >= cfg.meta;
+  $("totalLocal").textContent = money(totalLocal);
+  $("metaTxt").textContent = "Meta: " + money(cfg.meta);
+  $("barFill").style.width = Math.min(100, cfg.meta ? totalLocal/cfg.meta*100 : 0) + "%";
+  const st = $("statusTxt");
+  st.className = "status " + (cumple ? "ok" : "no");
+  st.textContent = cumple ? "El local llegó a la meta: se paga la columna alta." : "Faltan " + money(cfg.meta-totalLocal) + " para la meta del local.";
+
+  const cards = $("cards");
+  const abiertas = new Set([...cards.querySelectorAll(".card.open")].map(c=>c.dataset.id));
+  const foco = document.activeElement && document.activeElement.dataset ? document.activeElement.dataset.key : null;
+  const focoId = document.activeElement && document.activeElement.closest ? (document.activeElement.closest(".card")||{}).dataset : null;
+  cards.innerHTML = "";
+  const filas = [];
+  cfg.vendedoras.forEach(v=>{
+    const r = reg(v.id), c = calcular(v, cumple), t = TIPOS[v.tipo];
+    filas.push({v,c});
+    const card = document.createElement("div");
+    card.className = "card" + (abiertas.has(v.id) ? " open" : "");
+    card.dataset.id = v.id;
+    const ajuste = c.premio ? '<span class="tag prem">+10% premio</span>' : (c.desc ? '<span class="tag desc">-'+c.desc+'%</span>' : '');
+    card.innerHTML = `
+      <div class="card-head" role="button" tabindex="0" aria-expanded="${abiertas.has(v.id)}">
+        <div><div class="name">${esc(v.nombre)}</div><div class="tipo">${t.label} · vendió ${money(c.venta)} ${ajuste}</div></div>
+        <div class="pay"><b>${money(c.total)}</b><span>pago de la semana</span></div>
+      </div>
+      <div class="card-body">
+        <div class="grid two">
+          <div><label>Venta en efectivo</label><input type="number" inputmode="decimal" min="0" data-key="efectivo" value="${r.efectivo}"></div>
+          <div><label>Venta por medio digital</label><input type="number" inputmode="decimal" min="0" data-key="digital" value="${r.digital}"></div>
+        </div>
+        <div class="hint">Digital menos 5% de comisión bancaria: ${money(digitalNeto(r))}<br>Venta total para comisión: <b style="color:var(--gold)">${money(c.venta)}</b></div>
+        <div class="grid two">
+          <div><label>Retardos (más de 10 min)</label><input type="number" inputmode="numeric" min="0" data-key="retardos" value="${r.retardos}"></div>
+          <div><label>Días con local no presentable</label><input type="number" inputmode="numeric" min="0" max="4" data-key="presentacion" value="${r.presentacion}"></div>
+        </div>
+        <div style="margin-top:10px;max-width:220px">
+          <label>Promedio de la encuesta (1 a 10)</label>
+          <input type="number" inputmode="decimal" min="1" max="10" step="0.1" data-key="promedio" value="${esc(r.promedio)}" placeholder="Ej. 9.2" ${c.na?'disabled':''}>
+        </div>
+        <label class="check"><input type="checkbox" data-key="encNA" ${c.na?'checked':''}> Encuesta no aplica (menos de 5 respuestas)</label>
+        <div class="hint">${c.na ? 'La encuesta no cuenta esta semana: no hay descuento, pero tampoco premio.' : (c.enc.valida ? '' : 'Sin promedio no hay descuento por encuesta, pero tampoco premio.')}</div>
+        <label class="check"><input type="checkbox" data-key="reglamento" ${r.reglamento?'checked':''}> Cumplió con el Reglamento Interno</label>
+        <div class="calc">
+          <div><span>Comisión (${c.pct}% de ${money(c.venta)})</span><span>${money(c.com)}</span></div>
+          ${c.premio ? `<div><span>Premio por cumplir todo (+10%)</span><span>+${money(c.com*0.10)}</span></div>` :
+            `${c.ret?`<div><span>${c.ret} retardo${c.ret>1?'s':''}</span><span>-${c.ret*10}%</span></div>`:''}
+             ${c.pres?`<div><span>${c.pres} día${c.pres>1?'s':''} sin presentación</span><span>-${c.pres*10}%</span></div>`:''}
+             ${c.dEnc?`<div><span>Encuesta ${c.enc.prom.toFixed(1)}</span><span>-${c.dEnc}%</span></div>`:''}
+             ${c.desc?`<div><span>Descuento total</span><span>-${money(c.com-c.final)}</span></div>`:''}`}
+          ${c.na?'<div><span>Encuesta</span><span>No aplica</span></div>':''}
+          <div><span>Comisión final</span><span>${money(c.final)}</span></div>
+          <div><span>Sueldo base</span><span>${money(c.base)}</span></div>
+          <div class="total"><span>Pago de la semana</span><span>${money(c.total)}</span></div>
+        </div>
+      </div>`;
+    const head = card.querySelector(".card-head");
+    const toggle = ()=>{ card.classList.toggle("open"); head.setAttribute("aria-expanded", card.classList.contains("open")); };
+    head.addEventListener("click", toggle);
+    head.addEventListener("keydown", e=>{ if(e.key==="Enter"||e.key===" "){ e.preventDefault(); toggle(); } });
+    card.querySelectorAll("[data-key]").forEach(el=>{
+      const ev = el.type==="checkbox" ? "change" : "change";
+      el.addEventListener(ev, ()=>{
+        const k = el.dataset.key;
+        r[k] = el.type==="checkbox" ? el.checked : el.value;
+        save(); render();
+      });
+    });
+    cards.appendChild(card);
+  });
+
+  // resumen
+  const body = $("resBody"); body.innerHTML = "";
+  let sv=0, sc=0, sb=0, st2=0, se=0, sd=0;
+  filas.forEach(({v,c})=>{
+    const rr = reg(v.id); se+=num(rr.efectivo); sd+=digitalNeto(rr);
+    sv+=c.venta; sc+=c.final; sb+=c.base; st2+=c.total;
+    const aj = c.premio ? "+10%" : (c.desc ? "-"+c.desc+"%" : "—");
+    body.insertAdjacentHTML("beforeend", `<tr><td>${esc(v.nombre)}</td><td>${money(num(rr.efectivo))}</td><td>${money(digitalNeto(rr))}</td><td>${money(c.venta)}</td><td>${c.pct}%</td><td>${money(c.final)}</td><td>${aj}</td><td>${money(c.base)}</td><td>${money(c.total)}</td></tr>`);
+  });
+  $("resEf").textContent = money(se); $("resDig").textContent = money(sd);
+  $("resVentas").textContent = money(sv); $("resCom").textContent = money(sc);
+  $("resBase").textContent = money(sb); $("resTotal").textContent = money(st2);
+
+  renderAjustes();
+  window._resumen = {filas,totalLocal,cumple,st2};
+}
+
+function renderAjustes(){
+  const list = $("vList"); list.innerHTML = "";
+  state.config.vendedoras.forEach((v,i)=>{
+    const row = document.createElement("div"); row.className = "v-row";
+    row.innerHTML = `<input value="${esc(v.nombre)}" aria-label="Nombre">
+      <select aria-label="Tipo de semana">${Object.entries(TIPOS).map(([k,t])=>`<option value="${k}" ${k===v.tipo?'selected':''}>${t.label}</option>`).join("")}</select>
+      <button class="small danger">Quitar</button>`;
+    const [inp, sel, btn] = row.children;
+    inp.addEventListener("change", ()=>{ v.nombre = inp.value.trim()||v.nombre; save(); render(); });
+    sel.addEventListener("change", ()=>{ v.tipo = sel.value; save(); render(); });
+    btn.addEventListener("click", ()=>{ if(confirm("¿Quitar a "+v.nombre+" de la lista?")){ state.config.vendedoras.splice(i,1); save(); render(); } });
+    list.appendChild(row);
+  });
+}
+
+function esc(s){ return String(s??"").replace(/[&<>"]/g, c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c])); }
+function toast(t){ const el=$("toast"); el.textContent=t; el.classList.add("show"); setTimeout(()=>el.classList.remove("show"),1800); }
+
+function textoWhatsApp(){
+  const {filas,totalLocal,cumple,st2} = window._resumen;
+  const d = new Date(semana+"T12:00:00"), fin = new Date(d); fin.setDate(d.getDate()+3);
+  const f = x => x.toLocaleDateString("es-MX",{day:"numeric",month:"short"});
+  let t = `*QAR Accesorios · Comisiones*\nSemana del ${f(d)} al ${f(fin)}\n\n`;
+  t += `Venta del local: ${money(totalLocal)} (meta ${money(state.config.meta)}) ${cumple?"✅ Meta cumplida":"❌ No se llegó a la meta"}\n\n`;
+  filas.forEach(({v,c})=>{
+    const rr = reg(v.id);
+    t += `*${v.nombre}*\nVendió ${money(c.venta)} (efectivo ${money(num(rr.efectivo))}, digital ${money(num(rr.digital))} − 5% = ${money(digitalNeto(rr))}) · ${c.pct}%\n`;
+    if(c.na) t += `Encuesta: no aplica (menos de 5 respuestas)\n`;
+    if(c.premio) t += `Premio por cumplir todo: +10%\n`;
+    else if(c.desc) t += `Descuentos: -${c.desc}%\n`;
+    t += `Comisión ${money(c.final)} + base ${money(c.base)} = *${money(c.total)}*\n\n`;
+  });
+  t += `Total nómina: ${money(st2)}`;
+  return t;
+}
+
+// eventos generales
+$("semana").addEventListener("change", e=>{ if(e.target.value){ semana = iso(lastThursday(new Date(e.target.value+"T12:00:00"))); render(); } });
+const mover = n => { const d = new Date(semana+"T12:00:00"); d.setDate(d.getDate()+n*7); semana = iso(d); render(); };
+$("prevW").onclick = ()=>mover(-1); $("nextW").onclick = ()=>mover(1);
+$("otras").addEventListener("change", e=>{ week().otras = e.target.value; save(); render(); });
+$("metaInput").addEventListener("change", e=>{ const n = num(e.target.value); if(n>0){ state.config.meta = n; save(); render(); } });
+$("addV").onclick = ()=>{ state.config.vendedoras.push({id:"v"+Date.now(), nombre:"Nueva vendedora", tipo:"completa"}); save(); render(); };
+$("copyBtn").onclick = async ()=>{
+  const t = textoWhatsApp();
+  try{ await navigator.clipboard.writeText(t); toast("Resumen copiado"); }
+  catch(e){ const a=document.createElement("textarea"); a.value=t; document.body.appendChild(a); a.select(); document.execCommand("copy"); a.remove(); toast("Resumen copiado"); }
+};
+$("printBtn").onclick = ()=>window.print();
+$("exportBtn").onclick = ()=>{
+  const blob = new Blob([JSON.stringify(state,null,2)],{type:"application/json"});
+  const a = document.createElement("a"); a.href = URL.createObjectURL(blob); a.download = "qar_comisiones_respaldo_"+iso(new Date())+".json"; a.click();
+  setTimeout(()=>URL.revokeObjectURL(a.href),1000);
+};
+$("importBtn").onclick = ()=>$("importFile").click();
+$("importFile").onchange = e=>{
+  const file = e.target.files[0]; if(!file) return;
+  const rd = new FileReader();
+  rd.onload = ()=>{ try{ const s = JSON.parse(rd.result); if(s.config&&s.semanas){ state=s; save(); render(); toast("Respaldo cargado"); } else toast("Ese archivo no es un respaldo de QAR"); }catch(err){ toast("No se pudo leer el archivo"); } };
+  rd.readAsText(file); e.target.value="";
+};
+
+load(); render();
+</script>
+</body>
+</html>
